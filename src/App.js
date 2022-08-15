@@ -1,52 +1,59 @@
-// IMPORT
-import React, { useState } from 'react'; // useState is independently imported from React
+import React, { useState, useEffect } from 'react';
+import SnippetSelector from './SnippetSelector';
 
-// PRIMARY FUNCTION
 function App() {
-  // Set button contents
-  const buttonTextItems = [
-    'Bears, beets, battlestar galactica', // index 0
-    'Whats Forrest Gumps password? 1Forrest1', // index 1
-    'Where do programmers like to hang out? The Foo Bar' // index 2
-  ];
-  // Set initial state of the game
   const initialGameState = {
-    victory: false, // game hasn't been completed
-    startTime: null, // user has not started typing
-    endTime: null // user has not finished typing
+    victory: false,
+    startTime: null,
+    endTime: null
   }
 
-  // Declare variable and setVariable at the same time, assign state
-  const [snippet, setSnippet] = useState(''); // snippet is text
-  const [userText, setUserText] = useState(''); // userText is text
-  const [gameState, setGameState] = useState(initialGameState); // gameState is contents of initialGameState
+  const [snippet, setSnippet] = useState('');
+  const [userText, setUserText] = useState('');
+  const [gameState, setGameState] = useState(initialGameState);
+  const [hasError, setErrors] = useState(false);
+  const [films, setFilms] = useState([]);
 
-  // Use event to update the user text
+  useEffect(function () {
+    if (gameState.victory) {
+      document.title = "Victory!";
+    }
+  }, [gameState])
+
+  useEffect(function () {
+    async function fetchData() {
+      try {
+        const response = await fetch('https://ghibliapi.herokuapp.com/films?limit=3');
+        const films = await response.json();
+        setFilms(films);
+      }
+      catch (error) {
+        setErrors(error)
+      }
+    }
+    fetchData();
+  }, [])
+  
   function updateUserText(event) { 
-    const newUserText = event.target.value; // set state variable to value currently in it
+    const newUserText = event.target.value;
     setUserText(newUserText);
-    if (newUserText === snippet) { // if user input matches snippet:
+    if (newUserText === snippet) {
       setGameState({
-        ...gameState, // update game state
-        victory: true, // set victory to true
-        endTime: new Date().getTime() - gameState.startTime // get time user finished
+        ...gameState,
+        victory: true,
+        endTime: new Date().getTime() - gameState.startTime
       })
     }
   }
 
-  // Use index to set snippet
-  function chooseSnippet(index) {
-    setSnippet(buttonTextItems[index]); // assign text from buttons as snippet
+  function chooseSnippet(selectedSnippet) {
+    setSnippet(selectedSnippet);
     setGameState({
-      ...initialGameState, // update game state
-      startTime: new Date().getTime() // get time user started 
-    });
+      ...initialGameState,
+      startTime: new Date().getTime()
+    })
   }
 
-  /* For lines inside return statement:
-  - 57: if victory is true, send msg and game duration
-  - 60: map is created with snippetText and index
-  */
 
   return (
     <div>
@@ -57,12 +64,10 @@ function App() {
       <h4>{gameState.victory ? `Done! Woot! Time: ${gameState.endTime}ms` : null}</h4> 
       <input value={userText} onChange={updateUserText} />
       <hr />
-      {buttonTextItems.map((snippetText, index) => 
-        <button key={index} onClick={() => chooseSnippet(index)}>{snippetText}</button>
-      )}
+      <SnippetSelector films={films} chooseSnippet={chooseSnippet} />
+      <>{hasError ? 'An error has occured' : null}</>
     </div>
   );
 }
 
-// EXPORT
 export default App;
